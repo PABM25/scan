@@ -2,16 +2,24 @@ import React, { useState } from 'react';
 import CameraCapture from './components/CameraCapture';
 import ImageProcessor from './components/ImageProcessor';
 import AIAssistant from './components/AIAssistant';
+import BiometricLogin from './components/BiometricLogin';
+import BusinessCardMode from './components/BusinessCardMode';
+import SettingsMenu from './components/SettingsMenu';
 import { jsPDF } from "jspdf";
-import { MdCameraAlt, MdCloudUpload, MdPictureAsPdf, MdHome, MdLockOutline, MdLockOpen, MdSmartToy } from 'react-icons/md';
+import { MdCameraAlt, MdCloudUpload, MdPictureAsPdf, MdHome, MdLockOutline, MdLockOpen, MdSmartToy, MdSettings } from 'react-icons/md';
 
 function App() {
   const [capturedImage, setCapturedImage] = useState(null);
   const [pages, setPages] = useState([]);
+  const [documentTitle, setDocumentTitle] = useState('Unsaved Document');
   const [isUploading, setIsUploading] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); // home, camera, processor, ai
+  const [currentView, setCurrentView] = useState('login'); // login, home, camera, processor, ai
   const [pdfPassword, setPdfPassword] = useState('');
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showBusinessCardMode, setShowBusinessCardMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [pdfQuality, setPdfQuality] = useState(0.8);
+  const [isPdfA, setIsPdfA] = useState(false);
 
   const handleCapture = (imageSrc) => {
     setCapturedImage(imageSrc);
@@ -24,8 +32,26 @@ function App() {
   };
 
   const handleSavePage = (processedData) => {
-    setPages([...pages, processedData]);
+    const newPages = [...pages, processedData];
+    setPages(newPages);
     setCapturedImage(null);
+
+    // Auto-rename logic based on first page OCR text if it's currently "Unsaved Document"
+    if (newPages.length === 1 && processedData.text && documentTitle === 'Unsaved Document') {
+       const text = processedData.text;
+       // Very simple mock AI naming based on text content
+       let suggestedName = `Scan-${new Date().toLocaleDateString()}`;
+       if (text.toLowerCase().includes('invoice') || text.toLowerCase().includes('factura')) {
+           suggestedName = `Invoice-${new Date().toLocaleDateString()}`;
+       } else if (text.toLowerCase().includes('receipt') || text.toLowerCase().includes('recibo')) {
+           suggestedName = `Receipt-${new Date().toLocaleDateString()}`;
+       } else if (text.match(/\\b[A-Z][a-z]+ [A-Z][a-z]+\\b/)) { // Finds a Name
+           const match = text.match(/\\b[A-Z][a-z]+ [A-Z][a-z]+\\b/)[0];
+           suggestedName = `Document-${match.replace(' ', '')}`;
+       }
+       setDocumentTitle(suggestedName);
+    }
+
     setCurrentView('camera');
   };
 
@@ -39,7 +65,8 @@ function App() {
     const docOptions = {
         orientation: 'p',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true // Basic compression
     };
 
     if (pdfPassword) {
@@ -56,7 +83,9 @@ function App() {
 
     pages.forEach((pageData, index) => {
       if (index > 0) doc.addPage();
-      doc.addImage(pageData.image, 'JPEG', 0, 0, pdfWidth, pdfHeight, '', 'FAST');
+      // Apply compression quality when re-adding image (if possible in jsPDF, otherwise jsPDF relies on the input base64)
+      // Since pageData.image is already base64, we will just use FAST compression mode
+      doc.addImage(pageData.image, 'JPEG', 0, 0, pdfWidth, pdfHeight, '', 'FAST', 0);
     });
 
     return doc;
@@ -106,11 +135,18 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col w-full mx-auto md:max-w-md shadow-lg overflow-hidden relative">
 
+      {currentView === 'login' && (
+         <BiometricLogin onLogin={() => setCurrentView('home')} />
+      )}
+
       {/* Home View */}
       {currentView === 'home' && (
         <div className="flex flex-col h-full absolute inset-0 bg-gray-50">
           <header className="bg-white text-gray-800 p-4 shadow-sm flex justify-between items-center z-10 sticky top-0">
             <h1 className="text-xl font-bold tracking-tight">Recent Scans</h1>
+            <button onClick={() => setShowSettings(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
+              <MdSettings size={24} />
+            </button>
           </header>
 
           <main className="flex-grow overflow-auto p-4 flex flex-col">
@@ -125,8 +161,13 @@ function App() {
                     )}
                  </div>
 
-                 <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-semibold text-gray-800">Unsaved Document</h2>
+                 <div className="flex items-center gap-2 mb-1 w-full justify-center">
+                    <input
+                       type="text"
+                       value={documentTitle}
+                       onChange={(e) => setDocumentTitle(e.target.value)}
+                       className="font-semibold text-gray-800 bg-transparent border-b border-transparent focus:border-gray-300 focus:outline-none text-center"
+                    />
                     <button
                        onClick={() => setShowPasswordDialog(true)}
                        className={`p-1 rounded-full ${pdfPassword ? 'text-green-600 bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
@@ -168,6 +209,14 @@ function App() {
                        <MdCloudUpload /> {isUploading ? 'Uploading...' : 'Cloud'}
                      </button>
                  </div>
+                 {hasOcrText && (
+                   <button
+                      onClick={() => setShowBusinessCardMode(true)}
+                      className="w-full text-xs text-blue-600 mt-2 hover:underline"
+                   >
+                      Parse as Business Card?
+                   </button>
+                 )}
                </div>
             ) : (
               <div className="flex-grow flex flex-col items-center justify-center text-gray-400">
@@ -185,6 +234,22 @@ function App() {
           >
             <MdCameraAlt size={28} />
           </button>
+
+          {/* Business Card Overlay */}
+          {showBusinessCardMode && (
+             <BusinessCardMode text={getCombinedText()} onClose={() => setShowBusinessCardMode(false)} />
+          )}
+
+          {/* Settings Menu */}
+          {showSettings && (
+             <SettingsMenu
+                onClose={() => setShowSettings(false)}
+                pdfQuality={pdfQuality}
+                setPdfQuality={setPdfQuality}
+                isPdfA={isPdfA}
+                setIsPdfA={setIsPdfA}
+             />
+          )}
 
           {/* Password Dialog */}
           {showPasswordDialog && (

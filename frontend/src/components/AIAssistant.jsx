@@ -27,10 +27,12 @@ function AIAssistant({ documentText, onClose }) {
 
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api/chat';
+      // Use Fetch API to consume Server-Sent Events (SSE) for real-time streaming
       const response = await fetch(backendUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
         },
         body: JSON.stringify({
           question: userMessage.text,
@@ -38,17 +40,48 @@ function AIAssistant({ documentText, onClose }) {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { id: Date.now(), text: data.answer, sender: 'ai' }]);
-      } else {
-        setMessages(prev => [...prev, { id: Date.now(), text: "Sorry, I couldn't process that request right now.", sender: 'ai' }]);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      setIsTyping(false);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+
+      // Create a placeholder message for the AI response
+      const aiMessageId = Date.now();
+      setMessages(prev => [...prev, { id: aiMessageId, text: '', sender: 'ai' }]);
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                    break;
+                }
+                try {
+                    const parsed = JSON.parse(data);
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === aiMessageId ? { ...msg, text: msg.text + parsed.text } : msg
+                    ));
+                } catch (e) {
+                    // Ignore parse errors on partial streams
+                }
+            }
+        }
+      }
+
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { id: Date.now(), text: "Error connecting to the AI service.", sender: 'ai' }]);
-    } finally {
       setIsTyping(false);
+      setMessages(prev => [...prev, { id: Date.now(), text: "Error connecting to the AI service.", sender: 'ai' }]);
     }
   };
 
