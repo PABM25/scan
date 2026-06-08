@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { MdCheck, MdClose, MdCrop, MdColorLens } from 'react-icons/md';
+import { MdCrop, MdColorLens, MdTextFields } from 'react-icons/md';
+import Tesseract from 'tesseract.js';
 
 function ImageProcessor({ imageSrc, onCancel, onSave }) {
   const [crop, setCrop] = useState(null);
   const [completedCrop, setCompletedCrop] = useState(null);
   const [filter, setFilter] = useState('none');
-  const [activeTab, setActiveTab] = useState('crop'); // crop, filter
+  const [activeTab, setActiveTab] = useState('crop'); // crop, filter, ocr
+  const [ocrText, setOcrText] = useState('');
+  const [isOcring, setIsOcring] = useState(false);
   const imgRef = useRef(null);
   const previewCanvasRef = useRef(null);
 
@@ -85,10 +88,36 @@ function ImageProcessor({ imageSrc, onCancel, onSave }) {
     }
   }, [completedCrop, filter]);
 
+  const handleRunOcr = () => {
+    if (!previewCanvasRef.current) return;
+    setIsOcring(true);
+    const base64Image = previewCanvasRef.current.toDataURL('image/jpeg', 0.85);
+
+    Tesseract.recognize(
+      base64Image,
+      'spa+eng', // Spanish + English
+      { logger: m => console.log(m) }
+    ).then(({ data: { text } }) => {
+      setOcrText(text);
+      setIsOcring(false);
+    }).catch(err => {
+      console.error(err);
+      setOcrText("OCR failed.");
+      setIsOcring(false);
+    });
+  };
+
+  useEffect(() => {
+     if (activeTab === 'ocr' && ocrText === '' && !isOcring) {
+         handleRunOcr();
+     }
+  }, [activeTab]);
+
   const handleSave = () => {
     if (!previewCanvasRef.current) return;
     const base64Image = previewCanvasRef.current.toDataURL('image/jpeg', 0.85);
-    onSave(base64Image);
+    // Include OCR text along with image
+    onSave({ image: base64Image, text: ocrText });
   };
 
   return (
@@ -105,12 +134,12 @@ function ImageProcessor({ imageSrc, onCancel, onSave }) {
 
       {/* Main Image Area */}
       <div className="flex-grow overflow-hidden flex justify-center items-center p-4 relative">
-        <div className={`transition-opacity duration-300 ${activeTab === 'crop' ? 'opacity-100 z-10' : 'opacity-0 z-0 absolute pointer-events-none'}`}>
+        <div className={`transition-opacity duration-300 w-full h-full flex items-center justify-center ${activeTab === 'crop' ? 'opacity-100 z-10' : 'opacity-0 z-0 absolute pointer-events-none'}`}>
           <ReactCrop
             crop={crop}
             onChange={c => setCrop(c)}
             onComplete={c => setCompletedCrop(c)}
-            className="max-h-[70vh]"
+            className="max-h-full"
           >
             <img
               ref={imgRef}
@@ -125,6 +154,30 @@ function ImageProcessor({ imageSrc, onCancel, onSave }) {
         {/* Filter Preview */}
         <div className={`transition-opacity duration-300 w-full h-full flex items-center justify-center ${activeTab === 'filter' ? 'opacity-100 z-10' : 'opacity-0 z-0 absolute pointer-events-none'}`}>
              <img src={previewCanvasRef.current ? previewCanvasRef.current.toDataURL() : imageSrc} alt="Preview" style={{ maxHeight: '70vh', objectFit: 'contain' }} />
+        </div>
+
+        {/* OCR View */}
+        <div className={`transition-opacity duration-300 w-full h-full flex flex-col bg-gray-900 rounded p-4 overflow-y-auto ${activeTab === 'ocr' ? 'opacity-100 z-10' : 'opacity-0 z-0 absolute pointer-events-none'}`}>
+             <h3 className="text-lg font-semibold mb-2">OCR Extracted Text</h3>
+             {isOcring ? (
+               <div className="flex items-center justify-center flex-grow text-gray-400">
+                  <p>Extracting text... this may take a moment.</p>
+               </div>
+             ) : (
+                <textarea
+                  className="w-full h-full bg-gray-800 text-gray-200 p-3 rounded resize-none border border-gray-700"
+                  value={ocrText}
+                  onChange={(e) => setOcrText(e.target.value)}
+                  placeholder="Extracted text will appear here..."
+                />
+             )}
+             <button
+               onClick={handleRunOcr}
+               disabled={isOcring}
+               className="mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
+             >
+               Re-run OCR
+             </button>
         </div>
       </div>
 
@@ -164,6 +217,13 @@ function ImageProcessor({ imageSrc, onCancel, onSave }) {
         >
           <MdColorLens size={24} />
           <span className="text-[10px] mt-1 uppercase tracking-wide">Color</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('ocr')}
+          className={`flex flex-col items-center ${activeTab === 'ocr' ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+        >
+          <MdTextFields size={24} />
+          <span className="text-[10px] mt-1 uppercase tracking-wide">Text/OCR</span>
         </button>
       </div>
     </div>
