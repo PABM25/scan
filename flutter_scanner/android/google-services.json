@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "212278460454",
+    "project_id": "bemaker-scanner",
+    "storage_bucket": "bemaker-scanner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:212278460454:android:dd190be9016f0e8ac2e6e7",
+        "android_client_info": {
+          "package_name": "com.example.flutter_scanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWuCBqYVZtENQRzI4sK4eODKb_1x6w2FA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
