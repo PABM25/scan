@@ -41,31 +41,29 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'INSERT_YOUR_WEB_API_KEY_HERE',
-    appId: '1:1234567890:web:1234567890',
-    messagingSenderId: '1234567890',
-    projectId: 'flutter-scanner-demo',
-    authDomain: 'flutter-scanner-demo.firebaseapp.com',
-    storageBucket: 'flutter-scanner-demo.appspot.com',
+    apiKey: 'AIzaSyCFYyLfFG9E7v8zRcleO1qLipYNvB5iejQ',
+    appId: '1:212278460454:web:e70ec7214c754c8cc2e6e7',
+    messagingSenderId: '212278460454',
+    projectId: 'bemaker-scanner',
+    authDomain: 'bemaker-scanner.firebaseapp.com',
+    storageBucket: 'bemaker-scanner.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'INSERT_YOUR_ANDROID_API_KEY_HERE',
-    appId: '1:1234567890:android:1234567890',
-    messagingSenderId: '1234567890',
-    projectId: 'flutter-scanner-demo',
-    storageBucket: 'flutter-scanner-demo.appspot.com',
+    apiKey: 'AIzaSyDWuCBqYVZtENQRzI4sK4eODKb_1x6w2FA',
+    appId: '1:212278460454:android:dd190be9016f0e8ac2e6e7',
+    messagingSenderId: '212278460454',
+    projectId: 'bemaker-scanner',
+    storageBucket: 'bemaker-scanner.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'INSERT_YOUR_IOS_API_KEY_HERE',
-    appId: '1:1234567890:ios:1234567890',
-    messagingSenderId: '1234567890',
-    projectId: 'flutter-scanner-demo',
-    storageBucket: 'flutter-scanner-demo.appspot.com',
+    apiKey: 'AIzaSyAw2oxw3erdbHhOaQvm2jjT6EdNPoiwqG4',
+    appId: '1:212278460454:ios:d1ba5ade1dd63d25c2e6e7',
+    messagingSenderId: '212278460454',
+    projectId: 'bemaker-scanner',
+    storageBucket: 'bemaker-scanner.firebasestorage.app',
     iosBundleId: 'com.example.flutterScanner',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'INSERT_YOUR_MACOS_API_KEY_HERE',
     appId: '1:1234567890:ios:1234567890',

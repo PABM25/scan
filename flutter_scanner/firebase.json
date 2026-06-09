@@ -1,0 +1,23 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "bemaker-scanner",
+          "appId": "1:212278460454:android:dd190be9016f0e8ac2e6e7",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "bemaker-scanner",
+          "configurations": {
+            "android": "1:212278460454:android:dd190be9016f0e8ac2e6e7",
+            "ios": "1:212278460454:ios:d1ba5ade1dd63d25c2e6e7",
+            "web": "1:212278460454:web:e70ec7214c754c8cc2e6e7"
+          }
+        }
+      }
+    }
+  }
+}
