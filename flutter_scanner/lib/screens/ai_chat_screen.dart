@@ -60,7 +60,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (qLower.contains('summary') || qLower.contains('resumen')) {
         answer += "Here is the summary of the document: It appears to be an invoice or receipt that was successfully scanned and uploaded to Firebase Storage.";
     } else {
-        answer += "You asked: '\$question'. As a demo, I'm streaming this response word-by-word.";
+        answer += "You asked: '$question'. As a demo, I'm streaming this response word-by-word.";
     }
 
     final words = answer.split(' ');
@@ -71,7 +71,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
       setState(() {
         final currentText = _messages.last['text']!;
-        _messages[_messages.length - 1]['text'] = "\$currentText\${words[i]} ";
+        _messages[_messages.length - 1]['text'] = "$currentText${words[i]} ";
       });
       _scrollToBottom();
     }

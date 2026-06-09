@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final File pdfFile = await PdfService.generatePdf(pages);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF Saved locally to \${pdfFile.path}')),
+          SnackBar(content: Text('PDF Saved locally to ${pdfFile.path}')),
         );
       }
     } catch (e) {
@@ -88,10 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final File pdfFile = await PdfService.generatePdf(pages);
-      final String fileName = 'scan_\${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final String fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       // Upload to Firebase Storage
-      final Reference storageRef = FirebaseStorage.instance.ref().child('scans/\$fileName');
+      final Reference storageRef = FirebaseStorage.instance.ref().child('scans/$fileName');
       final UploadTask uploadTask = storageRef.putFile(pdfFile);
       final TaskSnapshot snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
@@ -114,12 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
         await _savePagesLocally();
       }
     } catch (e) {
-      debugPrint('Firebase upload error: \$e');
+      debugPrint('Firebase upload error: $e');
       if (mounted) {
         // Since we are using dummy config, it will likely fail here in dev.
         // We will show a friendly message.
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: Provide valid Firebase config to upload. \$e')),
+          SnackBar(content: Text('Error: Provide valid Firebase config to upload. $e')),
         );
       }
     } finally {
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: CircleAvatar(
                                 radius: 12,
                                 backgroundColor: Colors.blueAccent,
-                                child: Text('\${index + 1}', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                                child: Text('${index + 1}', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             )
                           ],

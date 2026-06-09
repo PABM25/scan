@@ -102,7 +102,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                     isFlashOn = !isFlashOn;
                   });
                 } catch (e) {
-                  debugPrint('Error toggling flash: \$e');
+                  debugPrint('Error toggling flash: $e');
                 }
               }
             },
