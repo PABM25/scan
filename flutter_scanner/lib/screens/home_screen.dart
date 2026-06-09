@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'camera_screen.dart';
 import 'processor_screen.dart';
-import 'ocr_screen.dart';
 import '../services/pdf_service.dart';
 import 'ai_chat_screen.dart';
 
