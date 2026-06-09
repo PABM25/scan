@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'camera_screen.dart';
 import 'processor_screen.dart';
 import '../services/pdf_service.dart';
@@ -17,6 +18,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<String> pages = [];
   bool isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPages();
+  }
+
+  Future<void> _loadSavedPages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPages = prefs.getStringList('saved_pages');
+    if (savedPages != null && savedPages.isNotEmpty) {
+      setState(() {
+        pages = savedPages;
+      });
+    }
+  }
+
+  Future<void> _savePagesLocally() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('saved_pages', pages);
+  }
 
   void _openCamera() async {
     final imagePath = await Navigator.push<String>(
@@ -39,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         pages.add(processedPath);
       });
+      await _savePagesLocally();
     }
   }
 
@@ -88,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           pages.clear();
         });
+        await _savePagesLocally();
       }
     } catch (e) {
       debugPrint('Firebase upload error: \$e');
@@ -207,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: const Icon(Icons.smart_toy, color: Colors.purpleAccent),
                     label: const Text('Ask AI Assistant', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.withValues(alpha: 0.15),
+                      backgroundColor: Colors.purple.withValues(alpha: 0.1),
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

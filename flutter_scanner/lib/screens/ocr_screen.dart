@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class OcrScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ class _OcrScreenState extends State<OcrScreen> {
           IconButton(
             icon: const Icon(Icons.copy),
             onPressed: () {
-               // Copy to clipboard placeholder
+               Clipboard.setData(ClipboardData(text: extractedText));
                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Text copied!')));
             },
           )

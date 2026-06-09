@@ -67,7 +67,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     for (int i = 0; i < words.length; i++) {
       await Future.delayed(const Duration(milliseconds: 80));
-      if (!mounted) return;
+      if (!mounted) break;
 
       setState(() {
         final currentText = _messages.last['text']!;

@@ -18,6 +18,21 @@ class _LoginScreenState extends State<LoginScreen> {
       _isAuthenticating = true;
     });
     try {
+      final isSupported = await auth.isDeviceSupported();
+      final canCheckBiometrics = await auth.canCheckBiometrics;
+
+      if (!isSupported || !canCheckBiometrics) {
+        // Fallback if biometrics are not supported
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometrics not supported, proceeding...')));
+           Navigator.pushReplacement(
+             context,
+             MaterialPageRoute(builder: (context) => const HomeScreen()),
+           );
+        }
+        return;
+      }
+
       final bool didAuthenticate = await auth.authenticate(
         localizedReason: 'Please authenticate to access your scans',
       );
@@ -29,6 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       debugPrint(e.toString());
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Authentication error: \$e')));
+      }
     } finally {
       if (mounted) {
         setState(() {

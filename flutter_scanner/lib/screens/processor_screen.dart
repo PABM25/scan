@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:colorfilter_generator/addons.dart';
 import 'ocr_screen.dart';
 
 class ProcessorScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class ProcessorScreen extends StatefulWidget {
 
 class _ProcessorScreenState extends State<ProcessorScreen> {
   String? currentPath;
+  List<double>? _currentMatrix;
 
   @override
   void initState() {
@@ -62,7 +64,12 @@ class _ProcessorScreenState extends State<ProcessorScreen> {
       ),
       body: Center(
         child: currentPath != null
-            ? Image.file(File(currentPath!))
+            ? (_currentMatrix == null
+                ? Image.file(File(currentPath!))
+                : ColorFiltered(
+                    colorFilter: ColorFilter.matrix(_currentMatrix!),
+                    child: Image.file(File(currentPath!)),
+                  ))
             : const CircularProgressIndicator(),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -79,8 +86,23 @@ class _ProcessorScreenState extends State<ProcessorScreen> {
               icon: const Icon(Icons.color_lens),
               color: Colors.white,
               onPressed: () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Filters coming soon'))
+                 showModalBottomSheet(
+                    context: context,
+                    builder: (context) {
+                       return Container(
+                         height: 150,
+                         color: const Color(0xFF2D2D2D),
+                         child: Row(
+                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                           children: [
+                             _filterButton('Original', null),
+                             _filterButton('Grayscale', ColorFilterAddons.grayscale()),
+                             _filterButton('Sepia', ColorFilterAddons.sepia(0.5)),
+                             _filterButton('Invert', ColorFilterAddons.invert()),
+                           ],
+                         ),
+                       );
+                    }
                  );
               },
             ),
@@ -97,6 +119,33 @@ class _ProcessorScreenState extends State<ProcessorScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _filterButton(String name, List<double>? matrix) {
+    return GestureDetector(
+      onTap: () {
+         setState(() {
+            _currentMatrix = matrix;
+         });
+         Navigator.pop(context);
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+             width: 50,
+             height: 50,
+             decoration: BoxDecoration(
+               shape: BoxShape.circle,
+               border: Border.all(color: _currentMatrix == matrix ? Colors.blueAccent : Colors.white24, width: 2),
+             ),
+             child: const Center(child: Icon(Icons.photo, color: Colors.white)),
+          ),
+          const SizedBox(height: 8),
+          Text(name, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ],
       ),
     );
   }
