@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'camera_screen.dart';
 import 'processor_screen.dart';
 import '../services/pdf_service.dart';
@@ -37,27 +39,81 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         pages.add(processedPath);
       });
-      // Like Adobe scan, usually brings you back to camera to scan more, but we'll stick to home for simplicity
     }
   }
 
   Future<void> _exportPdf() async {
     if (pages.isEmpty) return;
     try {
-      final pdfFile = await PdfService.generatePdf(pages);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF Saved to \${pdfFile.path}')),
-      );
+      final File pdfFile = await PdfService.generatePdf(pages);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF Saved locally to \${pdfFile.path}')),
+        );
+      }
     } catch (e) {
       debugPrint(e.toString());
+    }
+  }
+
+  Future<void> _uploadToFirebase() async {
+    if (pages.isEmpty) return;
+
+    setState(() {
+      isUploading = true;
+    });
+
+    try {
+      final File pdfFile = await PdfService.generatePdf(pages);
+      final String fileName = 'scan_\${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+      // Upload to Firebase Storage
+      final Reference storageRef = FirebaseStorage.instance.ref().child('scans/\$fileName');
+      final UploadTask uploadTask = storageRef.putFile(pdfFile);
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Save metadata to Firestore
+      await FirebaseFirestore.instance.collection('scans').add({
+        'name': fileName,
+        'url': downloadUrl,
+        'pageCount': pages.length,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploaded to Firebase successfully!')),
+        );
+        setState(() {
+          pages.clear();
+        });
+      }
+    } catch (e) {
+      debugPrint('Firebase upload error: \$e');
+      if (mounted) {
+        // Since we are using dummy config, it will likely fail here in dev.
+        // We will show a friendly message.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: Provide valid Firebase config to upload. \$e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Recent Scans'),
+        title: const Text('Recent Scans', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1E1E1E),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -66,8 +122,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: pages.isEmpty
-          ? const Center(
-              child: Text('No scans yet. Tap the camera to start.'),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.document_scanner, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No scans yet. Tap the camera to start.', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
             )
           : Padding(
               padding: const EdgeInsets.all(16.0),
@@ -85,14 +148,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         return Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.file(File(pages[index]), fit: BoxFit.cover),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(File(pages[index]), fit: BoxFit.cover)
+                            ),
                             Positioned(
                               top: 4,
                               right: 4,
                               child: CircleAvatar(
                                 radius: 12,
-                                backgroundColor: Colors.black54,
-                                child: Text('\${index + 1}', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                                backgroundColor: Colors.blueAccent,
+                                child: Text('\${index + 1}', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             )
                           ],
@@ -103,20 +169,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: _exportPdf,
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Save PDF'),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: isUploading ? null : _exportPdf,
+                          icon: const Icon(Icons.picture_as_pdf),
+                          label: const Text('Save Local'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Placeholder for Firebase upload
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Uploading to Firebase...')),
-                          );
-                        },
-                        icon: const Icon(Icons.cloud_upload),
-                        label: const Text('Cloud'),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: isUploading ? null : _uploadToFirebase,
+                          icon: isUploading
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.cloud_upload),
+                          label: const Text('Firebase Sync'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -129,10 +205,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                     icon: const Icon(Icons.smart_toy, color: Colors.purpleAccent),
-                    label: const Text('Ask AI Assistant', style: TextStyle(color: Colors.purpleAccent)),
+                    label: const Text('Ask AI Assistant', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.withOpacity(0.1),
+                      backgroundColor: Colors.purple.withValues(alpha: 0.15),
                       minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   const SizedBox(height: 80), // Space for FAB
@@ -141,7 +218,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openCamera,
-        child: const Icon(Icons.camera_alt),
+        backgroundColor: Colors.blueAccent,
+        child: const Icon(Icons.camera_alt, color: Colors.white),
       ),
     );
   }
