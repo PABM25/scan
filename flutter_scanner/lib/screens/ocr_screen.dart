@@ -32,7 +32,7 @@ class _OcrScreenState extends State<OcrScreen> {
       });
     } catch (e) {
       setState(() {
-        extractedText = 'Failed to extract text: \$e';
+        extractedText = 'Failed to extract text: $e';
         isProcessing = false;
       });
     } finally {

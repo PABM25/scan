@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       debugPrint(e.toString());
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Authentication error: \$e')));
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Authentication error: $e')));
       }
     } finally {
       if (mounted) {
